@@ -26,6 +26,8 @@ The library depends on:
 *  matplotlib
 *  nbodykit
 *  multiprocessing
+*  astropy
+*  joblib
 
 **Description**
 
