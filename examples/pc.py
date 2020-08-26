@@ -88,8 +88,9 @@ delta_baryon, vel_baryon, comoving=Generator_baryon.Compute_Density_Field()
 #Translates the comoving distance to a Hubble distance and redshift (by the use of astropy)
 Trans=Cosmo_Translate(comoving, parameters_box['cosmology'])
 hubble_vel=Trans.Compute_Hubble_Velocity()
-hubble=Trans.Convert_To_Numpy(hubble_vel)
+hubble_flow=Trans.Convert_To_Numpy(hubble_vel)
 redshift=Trans.Compute_Redshift()
+hubble=3*10**5*redshift/(1+parameters_box['redshift'])
 
 dens_hydrogen=Generator_baryon.Find_Neutral_Hydrogen_Fraction(delta_baryon, redshift)
 
@@ -132,6 +133,7 @@ parameters_forward = {
 
 #Project velocity to velocity in the direction along the line of sight
 vel_all=vel_baryon[2, :, :, :]
+vel_all*=(hubble[-1]-hubble[0])/(hubble_flow[-1]-hubble_flow[0])
 hubble_spect=hubble
 redshift_spect=redshift
 

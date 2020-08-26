@@ -30,7 +30,7 @@ class ProbCons(Operator):
         
         self.exp=exp
         
-        self.density_func=lambda x: 1/np.sqrt(2*np.pi*self.sigma**2)*np.exp(-1/(2*self.sigma**2)*(x-self.mu)**2)
+        self.density_func=lambda x: 1/np.sqrt(2*np.pi*self.sigma**2*x**2)*np.exp(-1/(2*self.sigma**2)*(np.log(x)-self.mu)**2)
         self.distribution_func_all=lambda x: 1/2*(1+erf((np.log(x)-self.mu)/np.sqrt(2*self.sigma**2)))
         
         self.bright_limit=self.distribution_func_all(self.Delta_bright)
@@ -50,18 +50,18 @@ class ProbCons(Operator):
             if self.exp:
                 self.argument=argument
         #densities smaller than Delta_bright are not resolved, we set the distribution just to zero
-        return np.where(self.distribution_func(argument)<0, 0, self.distribution_func(argument))
+        return np.where(self.index, 0, self.distribution_func(argument))
 
     
     def _derivative(self, h_data, **kwargs):
         if self.exp:
-            return self.prob_density * h_data * self.argument           
-        return self.prob_density * h_data
+            return np.where(self.index, 0, self.prob_density * h_data * self.argument)           
+        return np.where(self.index, 0, self.prob_density * h_data)
     
     def _adjoint(self, g, **kwargs):
         if self.exp:
-            return self.prob_density * g * self.argument 
-        return self.prob_density * g
+            return np.where(self.index, 0, self.prob_density * g * self.argument) 
+        return np.where(self.index, 0, self.prob_density * g)
     
 #Before applying, one needs to compute delta bright similar to PC solver
 #Precomputes the data vector for the RPC method, i.e. computes the probability to every density by evaluating thr observed data

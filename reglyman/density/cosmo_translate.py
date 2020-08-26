@@ -29,10 +29,8 @@ class Cosmo_Translate():
         self.comoving=comoving
         if self.log.isEnabledFor(logging.INFO):                
             self.log.info('Cosmology Calculator initialized')
-
-
     
-    #Translates redshifts into Hubble-velocities in km/s
+    #Translates redshifts into Hubble-flow in km/s
     #v_H=H(z) proper_distance=H(z) a(z) x    
     def Compute_Hubble_Velocity(self):
         Hubble_vel=self.cosmo.H(self.redshift)*self.cosmo.scale_factor(self.redshift)*self.comoving/self.cosmo._h*u.Mpc*u.s/u.km
@@ -43,6 +41,16 @@ class Cosmo_Translate():
     def Compute_Redshift(self):
         return self.redshift
 
+    def Compute_Pec_Vel(self, hubble, vel):
+        toret=np.zeros(vel.shape)
+        for i in range(vel.shape[0]):
+            flow=hubble+vel[i, :]
+            comoving=flow/(self.cosmo.H(self.redshift)*self.cosmo.scale_factor(self.redshift)*u.Mpc*u.s/u.km)
+            flow_redshift=np.zeros(np.size(comoving))
+            for j in range(np.size(comoving)):
+                flow_redshift[j]=ac.z_at_value(self.cosmo.comoving_distance, comoving[j]*u.Mpc)-self.redshift[j]
+            toret[i, :]=3*10**5*flow_redshift/self.redshift
+        return toret
 
     #If the data should be given in equal size bins in Hubble-velocities, then an interpolation is needed
     def Rebin_all(self, density, vel, Hubble_vel, N_new):
