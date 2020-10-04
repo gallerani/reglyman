@@ -259,12 +259,8 @@ reco_data=np.zeros((Nr_LOS, N_spect))
 parameters_box['nr_pix']=N_spect
 Generator_covariance=Data_Generation(parameters_box, parameters_igm, use_baryonic=True)
 covariance_baryon=Generator_covariance.Compute_Linear_Covariance(comoving)
-
-intercept=1.2444806332971265
-slope=-0.7608211805399628
-logN=intercept+slope*np.log(parameters_inversion['redshift_back'])
 C_0=covariance_baryon
-M_0=(1-logN)*np.ones(N_space)
+M_0= np.zeros(N_space)
 
 def perform_inversion(data, init, sigma, vel):
     C_D=sigma
