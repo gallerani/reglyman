@@ -448,7 +448,7 @@ class LymanAlphaBar(Operator):
         broadening=12.849*(self.T_med)**0.5*(density)**self.beta
         d_broadening=12.849*(self.T_med)**0.5*(density)**(self.beta-1)*self.beta
         for i in range(self.N_spect):
-            toadd[i, :]=2/(np.sqrt(np.pi)*broadening**3)*np.exp(-((self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)/broadening)**2)*(self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)**2*d_broadening*self.Prefactor-1/(np.sqrt(np.pi)*broadening**2)*np.exp(-((self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)/broadening)**2)*d_broadening*self.Prefactor   
+            toadd[i, :]=2/(np.sqrt(np.pi)*broadening**4)*np.exp(-((self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)/broadening)**2)*(self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)**2*d_broadening*self.Prefactor-1/(np.sqrt(np.pi)*broadening**2)*np.exp(-((self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)/broadening)**2)*d_broadening*self.Prefactor   
         toret = np.trapz(toadd*vector)
         return toret   
     
@@ -458,7 +458,7 @@ class LymanAlphaBar(Operator):
         for j in range(self.N_space):
             broadening=12.849*(self.T_med)**0.5*(density[j])**self.beta
             d_broadening=12.849*(self.T_med)**0.5*(density[j])**(self.beta-1)*self.beta
-            toadd[j, :]=2/(np.sqrt(np.pi)*broadening**3)*np.exp(-((self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])/broadening)**2)*(self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])**2*d_broadening*self.Prefactor-1/(np.sqrt(np.pi)*broadening**2)*np.exp(-((self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])/broadening)**2)*d_broadening*self.Prefactor_adjoint   
+            toadd[j, :]=2/(np.sqrt(np.pi)*broadening**4)*np.exp(-((self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])/broadening)**2)*(self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])**2*d_broadening*self.Prefactor-1/(np.sqrt(np.pi)*broadening**2)*np.exp(-((self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])/broadening)**2)*d_broadening*self.Prefactor_adjoint   
         toret=np.trapz(toadd*vector)
         return toret     
 
