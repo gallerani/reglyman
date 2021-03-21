@@ -17,9 +17,15 @@ import logging
 
 class Cosmo_Translate():
     log=classlogger
-    def __init__(self, comoving, chosen_cosmo):
+    def __init__(self, comoving, chosen_cosmo, cosmo=None):
         if chosen_cosmo=='Planck15':
             self.cosmo=ac.Planck15
+        elif chosen_cosmo=='UserDefined':
+            self.cosmo=cosmo.to_astropy()
+        else:
+            print(chosen_cosmo, 'not implemented right now')
+            print('Continue with Planck15 cosmology instead')
+            self.cosmo = ac.Planck15  
 
         #Translate comoving distances into redshifts
         #x=int_0^z c dz/H(z)

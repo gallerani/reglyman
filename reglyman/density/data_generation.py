@@ -21,7 +21,7 @@ Computes the creation of synthetic overdensities
 class Data_Generation():
     log=classlogger
     
-    def __init__(self, parameters_box, parameters_igm, use_baryonic=False):
+    def __init__(self, parameters_box, parameters_igm, use_baryonic=False, cosmo=None):
         self.redshift= parameters_box['redshift']
         self.width=parameters_box['width']
         chosen_cosmo=parameters_box['cosmology']
@@ -37,6 +37,8 @@ class Data_Generation():
         #specifies specific cosmological model
         if chosen_cosmo=='Planck15':
             self.cosmo = cosmology.Planck15
+        elif chosen_cosmo=='UserDefined':
+            self.cosmo = cosmo
         else: 
             print(chosen_cosmo, 'not implemented right now')
             print('Continue with Planck15 cosmology instead')
