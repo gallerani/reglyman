@@ -117,11 +117,13 @@ class LymanAlphaHydrogen(Operator):
         density_baryon=self._find_baryonic_density(density)
 
 #Computes the evaluation of the intergral operator by applying an integral kernel
-        tau=self._apply_kernel(density_baryon, vel_pec, density)
+        self._compute_kernel(density_baryon, vel_pec)
+        tau=self._apply_kernel(density)
         if differentiate:
             self.density=density
             self.density_baryon=density_baryon
-            self.vel_pec=vel_pec
+            self._compute_kernel_2(density_baryon, vel_pec)
+            self._compute_kernel_3(density_baryon, vel_pec)
         if self.flux_data:
             flux=np.exp(-tau)
             if differentiate:
@@ -141,18 +143,16 @@ class LymanAlphaHydrogen(Operator):
 
         density=self.density
         density_baryon=self.density_baryon
-        vel_pec=self.vel_pec
             
         if self.gamma:
             h=density*h
                 
 #First term in derivative matches the evaluation applied to the direction of descent   
-        d_tau_1=self._apply_kernel(density_baryon, vel_pec, h)
+        d_tau_1=self._apply_kernel(h)
 
 #Second term of derivative (inner derivative of the integration kernel)
-        d_tau_2=np.zeros(self.N_spect)
         bar_deriv=self._hydrogen_to_baryonic_deriv(density, density_baryon, h)
-        d_tau_2=self._apply_kernel_2(density_baryon, vel_pec, density*bar_deriv)
+        d_tau_2=self._apply_kernel_2(density_baryon, density*bar_deriv)
         if self.flux_data:
             toret=-self.flux*(d_tau_1+d_tau_2)
         else:                
@@ -178,11 +178,10 @@ class LymanAlphaHydrogen(Operator):
             
         density=self.density
         density_baryon=self.density_baryon
-        vel_pec=self.vel_pec
         
-        d_rho_1=self._apply_kernel_adjoint(density_baryon, vel_pec, y)
-        d_rho_2=self._apply_kernel_2_adjoint(density_baryon, vel_pec, y)*density
-        d_rho_2=self._hydrogen_to_baryonic_adjoint(density, density_baryon, d_rho_2)
+        d_rho_1=self._apply_kernel_adjoint(y)
+        d_rho_2=self._apply_kernel_2_adjoint(density_baryon, y)*density
+        d_rho_2=self._hydrogen_to_baryonic_adjoint(d_rho_2)
                 
         if self.gamma:
             toret=density*(d_rho_1+d_rho_2)
@@ -190,68 +189,64 @@ class LymanAlphaHydrogen(Operator):
             toret=d_rho_1+d_rho_2
                 
         if self.compute_vel:
-            d_rho_3=self._apply_kernel_3_adjoint(density_baryon, vel_pec, y)*density
+            d_rho_3=self._apply_kernel_3_adjoint(y)*density
             toret=np.concatenate(toret, d_rho_3)
         return toret
     
-    def _apply_kernel(self, density, vel_pec, vector):
-        toret=np.zeros(self.N_spect)
-        toadd=np.zeros((self.N_spect, self.N_spect))
-        broadening=12.849*(self.T_med)**0.5*(density)**self.beta
-        for i in range(self.N_spect):
-            toadd[i, :]=1/(np.sqrt(np.pi)*broadening)*np.exp(-((self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)/broadening)**2)*self.Prefactor
-        toret=np.trapz(toadd*vector)
-        return toret
-
-    
-    def _apply_kernel_adjoint(self, density, vel_pec, vector):
-        toret=np.zeros(self.N_space)
-        toadd=np.zeros((self.N_space, self.N_space))
-        for j in range(self.N_space):
-            broadening=12.849*(self.T_med)**0.5*(density[j])**self.beta
-            toadd[j, :]=1/(np.sqrt(np.pi)*broadening)*np.exp(-((self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])/broadening)**2)*self.Prefactor_adjoint
+    def _apply_kernel(self, vector):
+        toadd = self.toadd * self.Prefactor 
         toret = np.trapz(toadd*vector)
-        return toret
+        return toret 
+    
+    def _compute_kernel(self, density, vel_pec):
+        broadening=12.849*(self.T_med)**0.5*(density)**self.beta
+        argument=np.zeros((self.N_spect, self.N_space))
+        for i in range(self.N_spect):
+            argument[i, :]=self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec
+        self.toadd=1/(np.sqrt(np.pi)*broadening)*np.exp(-(argument/broadening)**2)          
+    
+    
+    def _apply_kernel_adjoint(self, vector):
+        toadd = self.toadd * self.Prefactor_adjoint
+        toret=np.trapz(toadd.transpose()*vector)
+        return toret      
 
     
-    def _apply_kernel_2(self, density, vel_pec, vector):
-        toret=np.zeros(self.N_spect)
-        toadd=np.zeros((self.N_spect, self.N_spect))
-        broadening=12.849*(self.T_med)**0.5*(density)**self.beta
+    def _apply_kernel_2(self, density, vector):
         d_broadening=12.849*(self.T_med)**0.5*(density)**(self.beta-1)*self.beta
-        for i in range(self.N_spect):
-            toadd[i, :]=2/(np.sqrt(np.pi)*broadening**3)*np.exp(-((self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)/broadening)**2)*(self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)**2*d_broadening*self.Prefactor-1/(np.sqrt(np.pi)*broadening**2)*np.exp(-((self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)/broadening)**2)*d_broadening*self.Prefactor   
-        toret=np.trapz(toadd*vector)
-        return toret
-    
-    
-    def _apply_kernel_2_adjoint(self, density, vel_pec, vector):
-        toret=np.zeros(self.N_space)
-        toadd=np.zeros((self.N_space, self.N_space))
-        for j in range(self.N_space):
-            broadening=12.849*(self.T_med)**0.5*(density[j])**self.beta
-            d_broadening=12.849*(self.T_med)**0.5*(density[j])**(self.beta-1)*self.beta
-            toadd[j, :]=2/(np.sqrt(np.pi)*broadening**3)*np.exp(-((self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])/broadening)**2)*(self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])**2*d_broadening*self.Prefactor_adjoint-1/(np.sqrt(np.pi)*broadening**2)*np.exp(-((self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])/broadening)**2)*d_broadening*self.Prefactor_adjoint   
-        toret=np.trapz(toadd*vector)
-        return toret
-    
-    
-    def _apply_kernel_3(self, density, vel_pec, vector):
-        toret=np.zeros(self.N_spect)
-        toadd=np.zeros((self.N_spect, self.N_spect))
-        broadening=12.849*(self.T_med)**0.5*(density)**self.beta
-        for i in range(self.N_spect):
-            toadd[i, :]=2/(np.sqrt(np.pi)*broadening)*np.exp(-((self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)/broadening)**2)*((self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec)/broadening)*self.Prefactor   
+        toadd = self.deriv_broadening * self.Prefactor * d_broadening
         toret = np.trapz(toadd*vector)
+        return toret   
+    
+    def _compute_kernel_2(self, density, vel_pec):
+        broadening=12.849*(self.T_med)**0.5*(density)**self.beta
+        argument=np.zeros((self.N_spect, self.N_space))
+        for i in range(self.N_spect):
+            argument[i, :]=self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec
+        self.deriv_broadening=2/(np.sqrt(np.pi)*broadening**4)*np.exp(-(argument/broadening)**2)*(argument)**2-1/(np.sqrt(np.pi)*broadening**2)*np.exp(-(argument/broadening)**2)  
+    
+    def _apply_kernel_2_adjoint(self, density, vector):
+        d_broadening=12.849*(self.T_med)**0.5*(density)**(self.beta-1)*self.beta
+        toadd = self.deriv_broadening * self.Prefactor_adjoint * d_broadening
+        toret=np.trapz(toadd.transpose()*vector)
+        return toret     
+
+    
+    def _apply_kernel_3(self, vector):
+        toadd = self.deriv_3 * self.Prefactor
+        toret=np.trapz(toadd*vector)
         return toret
     
-    def _apply_kernel_3_adjoint(self, density, vel_pec, vector):
-        toret=np.zeros(self.N_space)
-        toadd=np.zeros((self.N_space, self.N_space))
-        for j in range(self.N_space):
-            broadening=12.849*(self.T_med)**0.5*(density[j])**self.beta
-            toadd[j, :]=2/(np.sqrt(np.pi)*broadening)*np.exp(-((self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])/broadening)**2)*((self.Hubble_vel_spect-self.Hubble_vel[j]-vel_pec[j])/broadening)*self.Prefactor_adjoint   
-        toret=np.trapz(toadd*vector)
+    def _compute_kernel_3(self, density, vel_pec):
+        broadening=12.849*(self.T_med)**0.5*(density)**self.beta
+        argument=np.zeros((self.N_spect, self.N_space))
+        for i in range(self.N_spect):
+            argument[i, :]=self.Hubble_vel_spect[i]-self.Hubble_vel-vel_pec
+        self.deriv_3=2/(np.sqrt(np.pi)*broadening)*np.exp(-(argument/broadening)**2)*(argument/broadening)  
+    
+    def _apply_kernel_3_adjoint(self, vector):
+        toadd = self.deriv_3 * self.Prefactor_adjoint
+        toret=np.trapz(toadd.transpose()*vector)
         return toret
     
 #Computes the projection of the neutral hydrogen density to the overdensity of baryonic matter and its derivative and adjoint of derivative
