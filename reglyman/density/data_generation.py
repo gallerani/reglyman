@@ -3,6 +3,8 @@ from regpy.util import classlogger
 from nbodykit.lab import *
 from nbodykit import style, setup_logging
 
+from reglyman.density import LinearPower
+
 from nbodykit.mockmaker import lognormal_transform, gaussian_real_fields
 from pmesh.pm import ParticleMesh, RealField
 from nbodykit.mpirng import MPIRandomState
@@ -21,7 +23,7 @@ Computes the creation of synthetic overdensities
 class Data_Generation():
     log=classlogger
     
-    def __init__(self, parameters_box, parameters_igm, use_baryonic=False, cosmo=None):
+    def __init__(self, parameters_box, parameters_igm, use_baryonic=False, transfer="EisensteinHu", path_transfer=None, column=None, cosmo=None):
         self.redshift= parameters_box['redshift']
         self.width=parameters_box['width']
         chosen_cosmo=parameters_box['cosmology']
@@ -47,7 +49,7 @@ class Data_Generation():
         self.comoving_distance=self.cosmo.comoving_distance(self.redshift)
 
         #linear power spectrum
-        Plin = cosmology.LinearPower(self.cosmo, self.redshift, transfer='EisensteinHu')
+        Plin = LinearPower(self.cosmo, self.redshift, transfer, path_transfer, column)
         if self.use_baryonic:
             self.Plin=lambda k: 1/(1+self.Jeans_length**2*k**2)**2*Plin(k)
             self.Plin.redshift=self.redshift
@@ -171,7 +173,12 @@ class Data_Generation():
             
         Covariance=np.zeros((np.size(comoving), np.size(comoving)))
 
-        cf_lin=cosmology.CorrelationFunction(self.Plin)
+        k = np.linspace(10**(-5), 10, 10**6)
+        size = len(k)//2
+        Pk = self.Plin(k)
+        fourier_coeff = np.abs(np.fft.fftn(Pk)[0:size+1])
+        frqs = np.linspace(0, 0.1*size, size+1)
+        cf_lin = Spline(frqs, fourier_coeff)
         
         diff=np.zeros((np.size(comoving), np.size(comoving)))
         for i in range(np.size(comoving)):
@@ -179,6 +186,8 @@ class Data_Generation():
                 diff[i, j]=np.abs(comoving[i]-comoving[j])
                 
         Covariance=cf_lin(diff)
+        
+        Covariance /= Covariance[0, 0]
 
         if self.log.isEnabledFor(logging.INFO):                
             self.log.info('Prior Covariance computed')  
