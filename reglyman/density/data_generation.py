@@ -10,6 +10,7 @@ from pmesh.pm import ParticleMesh, RealField
 from nbodykit.mpirng import MPIRandomState
 
 import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 import mpsort
 
 import logging

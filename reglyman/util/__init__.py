@@ -24,6 +24,13 @@ class GaussianSmoothing(Operator):
     
     def _adjoint(self, x):
         return gaussian_filter(x, sigma=self.smoothing_scale)
+    
+def camb2nbodykit(path, column=None):
+    if column == None:
+        column = 8
+    current_path = str(pathlib.Path().absolute())
+    array = np.loadtxt(current_path+r'/../reglyman/power_spectra/'+path)
+    return array[:,column]
 
 def cosmo(h=0.67556, T0_cmb=2.7255, Omega0_b=0.022032/0.67556**2, Omega0_cdm=0.12038/0.67556**2, N_ur=None,
             m_ncdm=[0.06], P_k_max=10., P_z_max=100., gauge='synchronous', n_s=0.9667,

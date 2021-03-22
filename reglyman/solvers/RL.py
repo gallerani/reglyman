@@ -38,8 +38,8 @@ class Richardson_Lucy(Solver):
         indices=[self.fr[i]==0 for i in range(np.size(self.fr))]
         self.fr[indices]=self.f[indices]
 
-        nominator=self.richardson._eval(self.x, self.f/self.fr)
-        denominator=self.richardson._eval(self.x, np.ones(self.shape))
+        nominator=self.richardson._eval(self.f/self.fr)
+        denominator=self.richardson._eval(np.ones(self.shape))
         denominator=np.where(denominator==0, 10**(-100), denominator)
         
         for i in self.averaging_ind:
