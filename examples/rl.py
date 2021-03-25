@@ -57,7 +57,7 @@ Note n_{HI} is the density and delta_b the density perturbation (i.e. n_b divide
 #Parameters for the creation of synthetic data.
 parameters_box={	
 	'cosmology' : 'Planck15',
-	'jeans_length' : 0.19,
+	'jeans_length' : 0.16,
 	'background_box' : np.array([100, 100]),
 	'background_sampling' : np.array([100, 100]),
 	'width' : 10,
@@ -68,7 +68,7 @@ parameters_box={
 
 parameters_igm={
 	'beta' : 0.2,
-	'tilde_c' : 1.92*10**(-8),
+	'tilde_c' : 1.2*10**(-8),
 	't_med' : 1
 	}
 
@@ -81,7 +81,7 @@ parameters_inversion = {
         "sampling" : (285, 285),
         "beta" : 0.2,
         "t_med" : 1,
-        "tilde_c" : 1.92*10**(-8)
+        "tilde_c" : 1.2*10**(-8)
         }
 
 #Noise model; sigma_F^2=F^2/SNR^2+sigma_0^2
@@ -94,6 +94,9 @@ parameters_noise = {
 #Computes the Baryon overdensity and peculiar velocities
 Generator_baryon=Data_Generation(parameters_box, parameters_igm, use_baryonic=True)
 delta_baryon, vel_baryon, comoving=Generator_baryon.Compute_Density_Field()
+
+#Compute Cosomology object
+cosmology_model = Generator_baryon.cosmo
 
 #Translates the comoving distance to a Hubble distance and redshift (by the use of astropy)
 Trans=Cosmo_Translate(comoving, parameters_box['cosmology'])
@@ -234,10 +237,7 @@ sigma=sigma_rebinned
 Initial Guess
 '''
 
-from nbodykit.lab import *
-cosmo=cosmology.Planck15
-pre=100*cosmo.h/(4.45*10**(-22)*cosmo.C)/(3.08*10**22)
-alpha=2-1.4*parameters_inversion['beta']
+pre=100*cosmology_model.h*cosmology_model.efunc(parameters_inversion['redshift_back'])/(4.45*10**(-22)*cosmology_model.C)/(3.08*10**22)
 init=np.zeros((Nr_LOS, N_space))
 for i in range(Nr_LOS):
     flux=np.where(data[i, :]>1, 0.99, data[i, :])
@@ -259,9 +259,6 @@ reco=np.zeros((Nr_LOS, N_space))
 reco_data=np.zeros((Nr_LOS, N_spect))
 
 def perform_inversion(data, init, sigma, vel):
-    C_D=sigma
-        
-
     op = LymanAlphaHydrogen(domain, parameters_inversion, redshift, redshift, hubble, hubble, vel_pec=vel, codomain=codomain)
 
     setting = HilbertSpaceSetting(
@@ -279,7 +276,7 @@ def perform_inversion(data, init, sigma, vel):
     rules.CombineRules(
     (rules.CountIterations(300),
     rules.Discrepancy(energy.norm, data, noiselevel=np.sqrt(N_spect), tau=1),
-    rules.RelativeChangeData(energy.norm, data, 0.001))))
+    rules.RelativeChangeData(energy.norm, data, 0.0001))))
     
     return richardson_lucy.run(stoprule)
     

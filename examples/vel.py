@@ -51,7 +51,7 @@ Note n_{HI} is the density and delta_b the density perturbation (i.e. n_b divide
 
 parameters_box={	
 	'cosmology' : 'Planck15',
-	'jeans_length' : 0.19,
+	'jeans_length' : 0.16,
 	'background_box' : np.array([10, 10]),
 	'background_sampling' : np.array([15, 15]),
 	'width' : 10,
@@ -62,7 +62,7 @@ parameters_box={
 
 parameters_igm={
 'beta' : 0.2,
-'tilde_c' : 1.92*10**(-8),
+'tilde_c' : 1.2*10**(-8),
 't_med' : 1
 }
 
