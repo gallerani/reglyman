@@ -6,7 +6,7 @@ from nbodykit import style, setup_logging
 from reglyman.density import LinearPower
 
 from nbodykit.mockmaker import lognormal_transform, gaussian_real_fields
-from pmesh.pm import ParticleMesh, RealField
+from pmesh.pm import ParticleMesh
 from nbodykit.mpirng import MPIRandomState
 
 import numpy as np

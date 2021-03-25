@@ -9,7 +9,9 @@ setuptools.setup(
         'scipy>=1.1,<2.0',
         'matplotlib',
         'regpy',
-	'nbodykit'
+	'nbodykit',
+    'astropy',
+    'pmesh'
     ],
     python_requires='>=3.6,<4.0',
 )
