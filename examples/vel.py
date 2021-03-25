@@ -91,10 +91,17 @@ Estimator= Interpolation(parameters_box, comoving, comoving[::10])
 #and smoothing of density field with Gaussian blur with width sigma=1
 #Density must be provided as flat array
 #Density perturbation is corrected for typical bias
-delta_est, vel_est = Estimator.Perform_Estimation(np.log(delta_baryon.flatten())+0.5, maxiter=10, sigma=1)
+delta_est, vel_est = Estimator.Perform_Estimation(np.log(delta_baryon.flatten()), maxiter=10, sigma=1)
 
 #Plot results
 import matplotlib.pyplot as plt 
+
+#The correlations are normalized. Hence, we need to find the correct amplitude of the velocities here.
+#In application of realistic data, this has to be specified prior to analysis,
+#i.e. one needs to specify the variance and mean of the correct densitty field. 
+factor = np.std(vel_baryon)/np.std(vel_est)
+vel_est *= factor
+vel_est -= np.mean(vel_est)
 
 plt.plot(vel_est[500:600], label='est')
 plt.plot(vel_baryon[2, :, :, :].flatten()[5000:6000:10], label='true')

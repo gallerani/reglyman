@@ -3,7 +3,10 @@ from regpy.util import classlogger
 from nbodykit.lab import *
 from nbodykit import style, setup_logging
 
+from reglyman.density import LinearPower
+
 import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from scipy.ndimage import gaussian_filter
 
 from joblib import Parallel, delayed
@@ -19,28 +22,37 @@ Estimates peculiar velocities from the density field
 
 class Interpolation:
     log = classlogger
-    def __init__(self, parameters_box, comoving_full_range, comoving):
+    def __init__(self, parameters_box, comoving_full_range, comoving, transfer="EisensteinHu", path_transfer=None, column=None, cosmo=None):
         chosen_cosmo=parameters_box['cosmology']
         #specifies specific cosmological model
         if chosen_cosmo=='Planck15':
             self.cosmo = cosmology.Planck15
+        elif chosen_cosmo=='UserDefined':
+            self.cosmo = cosmo
         else: 
             print(chosen_cosmo, 'not implemented right now')
             print('Continue with Planck15 cosmology instead')
-            self.cosmo = cosmology.Planck15 
+            self.cosmo = cosmology.Planck15     
 
         self.redshift=parameters_box['redshift']
         
         self.Jeans_length=parameters_box['jeans_length']
         
-        self.Plin = cosmology.LinearPower(self.cosmo, self.redshift, transfer='EisensteinHu')
+        self.Plin = LinearPower(self.cosmo, self.redshift, transfer, path_transfer, column)
         
         #speify baryonic correlation function
         self.Plin_b=lambda k: 1/(1+self.Jeans_length**2*k**2)**2*self.Plin(k)
         self.Plin_b.redshift=self.redshift
         self.Plin_b.sigma8=self.cosmo.sigma8
         self.Plin_b.cosmo=self.cosmo
-        self.cf_lin_dd=cosmology.CorrelationFunction(self.Plin_b)
+        
+        k = np.linspace(10**(-5), 10, 10**6)
+        size = len(k)//2
+        Pk = self.Plin_b(k)
+        fourier_coeff = np.abs(np.fft.fftn(Pk)[0:size+1])
+        frqs = np.linspace(0, 0.1*size, size+1)
+        self.cf_lin_dd = Spline(frqs, fourier_coeff)
+        #self.cf_lin_dd=cosmology.CorrelationFunction(self.Plin_b)
         
         #v-delta power spectrum is given by iaHf*k_z/k**2*P_b(k)
         #In integration this can be rewritten using d/dz
@@ -50,7 +62,12 @@ class Interpolation:
         self.Plin_vdelta.redshift=self.redshift
         self.Plin_vdelta.sigma8=self.cosmo.sigma8
         self.Plin_vdelta.cosmo=self.cosmo
-        self.cf_lin_vd=cosmology.CorrelationFunction(self.Plin_vdelta)
+        
+        Pk = self.Plin_vdelta(k)
+        fourier_coeff = np.abs(np.fft.fftn(Pk)[0:size+1])
+        frqs = np.linspace(0, 0.1*size, size+1)
+        self.cf_lin_vd = Spline(frqs, fourier_coeff)
+        #self.cf_lin_vd=cosmology.CorrelationFunction(self.Plin_vdelta)
         
         self.comoving_full_range=comoving_full_range
         self.comoving=comoving
@@ -87,9 +104,10 @@ class Interpolation:
                 diff[i, j]=np.sqrt( (self.xvf[i]-self.xvf[j])**2 + (self.yvf[i]-self.yvf[j])**2 + (self.zvf[i]-self.zvf[j])**2)
         #Compute covariance
         Covariance=self.cf_lin_vd(diff)
+        Covariance /= Covariance[0, 0]
         #Compute final covariance by differentiating along z
         for i in range(self.size):
-            Covariance[i, i]=1386.4   
+            Covariance[i, i]=1  
             array = Covariance[i, :].reshape((self.size_x, self.size_y, self.size_z))
             for l in range(self.size_x):
 #                results=Parallel(n_jobs=self.num_cores)(delayed(self._compute_diffquotient)(array[l, m, :]) for m in range(self.size_y))
@@ -117,6 +135,7 @@ class Interpolation:
             for j in range(self.size):
                 diff[i, j]=np.sqrt( (self.xvf[i]-self.xvf[j])**2 + (self.yvf[i]-self.yvf[j])**2 + (self.zvf[i]-self.zvf[j])**2)
         Covariance=self.cf_lin_dd(diff)
+        Covariance /= Covariance[0, 0]
         return Covariance 
 
     #compute all needed correlations for velocity estimation procedure
@@ -145,6 +164,7 @@ class Interpolation:
             for j in range(size_trans):
                 diff[i, j] = np.sqrt( (xvf[i]-xvf[j])**2 + (yvf[i]-yvf[j])**2 )
         corr=self.cf_lin_dd(diff)
+        corr /= corr[0, 0]
         return corr
     
     #performs estimation of the velocity field
