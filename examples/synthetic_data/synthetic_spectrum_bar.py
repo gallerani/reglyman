@@ -46,7 +46,7 @@ parameters = {
         "sampling" : (N_space, N_spect),
         "beta" : 0.2,
         "t_med" : 1,
-        "tilde_c" : 1.92*10**(-8)
+        "tilde_c" : 1.2*10**(-8)
         }
 
 #Mock redshfits, typically computed by generate_data

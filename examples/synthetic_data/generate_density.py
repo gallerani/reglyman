@@ -21,7 +21,7 @@ In:
 
 parameters_box={	
 	'cosmology' : 'Planck15',
-	'jeans_length' : 0.19,
+	'jeans_length' : 0.16,
 	'background_box' : np.array([100, 100]),
 	'background_sampling' : np.array([100, 100]),
 	'width' : 10,
@@ -32,7 +32,7 @@ parameters_box={
 
 parameters_igm={
 	'beta' : 0.2,
-	'tilde_c' : 1.92*10**(-8)
+	'tilde_c' : 1.2*10**(-8)
 }
 
 #parameters for poisson sampling of the final density field in order to compute mock galaxies in the box
